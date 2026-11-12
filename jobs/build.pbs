@@ -1,0 +1,20 @@
+#!/bin/bash
+# Build both versions on a GPU node and run every correctness check there.
+#   qsub jobs/build.pbs        (add -q <gpu queue> if the GPU nodes have their own queue)
+#PBS -N hjb-build
+#PBS -l select=1:ncpus=16:ngpus=1:mpiprocs=8:mem=32gb
+#PBS -l walltime=00:30:00
+#PBS -j oe
+set -euo pipefail
+cd "$PBS_O_WORKDIR"
+source jobs/modules.sh
+# CPU build: g++ (no fast-math, so serial and MPI runs are byte-identical)
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++
+cmake --build build -j 16
+# GPU build: nvc++ with -mp=gpu
+OMPI_CXX=nvc++ cmake -S . -B build-gpu -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=nvc++ -DGPU=ON
+OMPI_CXX=nvc++ cmake --build build-gpu -j 16 --target hjb_gpu
+nvidia-smi -L || true
+export MPIRUN="$MPIRUN_CMD --oversubscribe --bind-to none"
+OMP_NUM_THREADS=1 tests/validate.sh build
+OMP_TARGET_OFFLOAD=MANDATORY GPU_RANKS=1 tests/compare_gpu.sh build build-gpu "$MPIRUN"
