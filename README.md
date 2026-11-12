@@ -182,8 +182,3 @@ python/              reference solutions, checks, plots, tables
 tests/               validate.sh, compare.sh (byte-for-byte), compare_gpu.sh (tolerance)
 jobs/                bench.sh driver, PBS wrappers for Vanda, modules.sh
 ```
-
-## AI usage
-
-This code was written with Claude (Anthropic) from a plan agreed with the author; the
-author reviewed, ran and is responsible for it. Describe the details in the report's AI-usage section.
